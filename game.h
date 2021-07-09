@@ -32,7 +32,7 @@ enum class Direction {
 typedef std::tuple<bool, Direction, glm::vec3> Collision;
 
 // initial size of the player paddle
-const glm::vec3 PLAYER_SIZE(150.0f, 60.0f, 150.0f);
+const glm::vec3 PLAYER_SIZE(200.0f, 60.0f, 200.0f);
 const float PLAYER_VELOCITY(500.0f);
 
 const glm::vec3 INITIAL_BALL_VELOCITY(0.0f, 30.0f, 0.0f);
@@ -41,6 +41,9 @@ const float BALL_RADIUS = 5.0f;
 // Game-related state data
 SpriteRenderer* Renderer;
 GameObject* Player;
+
+i32 contador = 0;
+i32 top = 1000;
 
 // Holds game-related state and functionallity.
 // combines game-related data into a class
@@ -54,7 +57,7 @@ public:
 	std::vector<GameLevel> Levels;
 	ui32 Level;
 	vector<BallObject*> balas_jugador;
-
+	vector<BallObject*> balas_enemigo;
 
 	// constructor / destructur
 	Game(unsigned int width, unsigned int height, unsigned int depth)
@@ -107,6 +110,7 @@ public:
 	
 	// game loop (deltatime)
 	void ProcessInput(f32 dt) {
+
 		if (State == GAME_ACTIVE) {
 			float velocity = PLAYER_VELOCITY * dt;
 
@@ -147,8 +151,7 @@ public:
 		}
 	}
 	void Update(f32 dt) {
-
-		// Update objects
+		// Move objects
 		for (auto* ball : balas_jugador) {
 			if (!ball->Stuck)
 			{
@@ -162,6 +165,18 @@ public:
 			}
 		}
 
+		for (auto* ball : balas_enemigo) {
+			if (!ball->Stuck)
+			{
+				if (ball->Position.y <= 0) {
+					ball->Stuck = true;
+				}
+
+				else {
+					ball->Move(dt, Width, Height, Depth, Player->Position.x, Player->Position.z);
+				}
+			}
+		}
 
 		//check for collisions
 		for (auto* ball : balas_jugador) {
@@ -169,12 +184,12 @@ public:
 				DoCollisions(ball);
 			}
 		}
-		// Check bottom edge
-		/* if (Ball->Position.y <= 0.0f) {
-			ResetLevel();
-			ResetPlayer();
-		}
-		*/
+
+		for (auto* ball : balas_enemigo) {
+			if (!ball->Stuck) {
+				DoCollisionJugador(ball);
+			}
+		}		
 	}
 
 	void ResetLevel() {
@@ -225,13 +240,37 @@ public:
 			// draw the player
 			Player->Draw(Renderer);
 
-			// draw the ball
+			// draw the ball player
 			for (auto* ball : balas_jugador) {
 				if (!ball->Stuck) {
 					ball->Draw(Renderer);
 				}
 			}
+			
+			// draw the ball enemigos
+			for (auto* ball : balas_enemigo) {
+				if (!ball->Stuck) {
+					ball->Draw(Renderer);
+				}
+			}
+
+			// create bala
+			if (contador >= top) {
+
+				glm::vec3 ballPos = glm::vec3(1.0f);
+				Level = rand() % 4;
+
+				if (!Levels[Level].IsCompleted()) {
+
+					BallObject* Ball = Levels[Level].CrearBala();
+					balas_enemigo.push_back(Ball);
+				}
+
+				top = 1000 + rand() % 500;
+				contador = 0;
+			}
 		}
+		contador += 1;
 	}
 
 	// check between ball and each brick of the level 
@@ -328,35 +367,18 @@ public:
 					}
 				}
 			}
+		}	
+	}
+
+	void DoCollisionJugador(BallObject* Ball) {
+	
+		// collision de jugador
+		Collision result = CheckCollision(Ball, Player);
+		if (std::get<0>(result)) {
+			Player->Color.x += 0.1;
+			Ball->Stuck = true;
 		}
 	}
-		// collision de jugador
-		/*
-		Collision result = CheckCollision(Ball, Player);
-		if (!Ball->Stuck && std::get<0>(result)) {
-			
-			// check where it hit the board, and change velocity
-			vec3 centerBoard = Player->Position;
-			float strength = 2.0f;
-			
-			// colision x
-			float distancex = Ball->Position.x - centerBoard.x;
-			float percentagex = distancex / (Player->Size.x / 2.0f);
-
-			// colision z
-			float distancez = Ball->Position.z - centerBoard.z;
-			float percentagez = distancez / (Player->Size.z / 2.0f);
-
-			// then move accordingly
-			glm::vec2 oldVelocity = Ball->Velocity;
-			Ball->Velocity.x = INITIAL_BALL_VELOCITY.x * percentagex * strength;
-			Ball->Velocity.z = INITIAL_BALL_VELOCITY.z * percentagez * strength;
-
-			Ball->Velocity.y = 1.0f * abs(Ball->Velocity.y);
- 			Ball->Velocity = glm::normalize(Ball->Velocity) * glm::length(oldVelocity);
-		
-		}
-		*/
 	
 	
 	

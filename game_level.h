@@ -3,6 +3,7 @@
 #define __GAMELEVEL_H__
 
 #include "game_object.h"
+#include "ball_object.h"
 #include "resource.h"
 
 #include <typedef.h>
@@ -62,10 +63,41 @@ public:
 	bool IsCompleted() {
 		for (GameObject* tile : this->Bricks)
 		{
-			if (!tile->IsSolid && !tile->Destroyed)
+			if (!tile->Destroyed)
 				return false;
 		}
 		return true;
+	}
+
+	i32 ActiveBall() {
+		i32 cont = 0;
+		for (GameObject* tile : this->Bricks)
+		{
+			if (!tile->Destroyed)
+				cont++;
+		}
+		return cont;
+	}
+
+	BallObject* CrearBala() {	
+		
+		i32 cont = this->ActiveBall();
+		cont = rand() % cont;
+
+		i32 aux = 0;
+
+		for (GameObject* tile : this->Bricks)
+		{
+			if (!tile->Destroyed) {
+				aux++;
+
+				if (aux == cont) {
+					return new BallObject(tile->Position, 5.0f, -1.0f * vec3(0.0f, 30.0f, 0.0f),
+						ResourceManager::GetTexture("face"));
+				}
+			}
+		}
+		return new BallObject();
 	}
 
 private:
@@ -113,7 +145,6 @@ private:
 			}
 		}
 	}
-
 };
 
 #endif 
